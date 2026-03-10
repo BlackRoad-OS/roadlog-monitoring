@@ -207,9 +207,61 @@
             border-top: 1px solid rgba(255,255,255,0.1);
             text-align: center;
         }
+        /* Navigation */
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 34px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            transition: background 0.3s;
+        }
+        .nav-brand {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #FF1D6C 38.2%, #2979FF 61.8%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+        .nav-links { display: flex; gap: 28px; align-items: center; }
+        .nav-links a {
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: #FFF; }
+        .nav-cta {
+            padding: 10px 24px !important;
+            background: linear-gradient(135deg, #FF1D6C 38.2%, #2979FF 61.8%);
+            border-radius: 8px;
+            color: #FFF !important;
+            font-weight: 600 !important;
+        }
     </style>
 </head>
 <body>
+    <nav class="nav">
+        <a href="/" class="nav-brand">RoadLog</a>
+        <div class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#demo">Live Demo</a>
+            <a href="#pricing">Pricing</a>
+            <a href="/dashboard/">Dashboard</a>
+            <a href="/clerk-integration/clerk-auth.html" class="nav-cta">Sign In</a>
+        </div>
+    </nav>
+
     <section class="hero">
         <div style="font-size: 89px; margin-bottom: 21px;">📊</div>
         <h1>RoadLog</h1>
@@ -229,6 +281,7 @@
             </div>
         </div>
         <a href="#features" class="btn">Explore Features</a>
+        <a href="/dashboard/" class="btn" style="margin-left: 16px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);">Open Dashboard</a>
     </section>
 
     <section class="features" id="features">
@@ -267,7 +320,7 @@
         </div>
     </section>
 
-    <section class="demo">
+    <section class="demo" id="demo">
         <h2 class="section-title">Live Log Viewer</h2>
         <div class="log-viewer">
             <div class="log-entry log-info">
@@ -294,7 +347,7 @@
         </div>
     </section>
 
-    <section class="pricing">
+    <section class="pricing" id="pricing">
         <h2 class="section-title">Flexible Pricing</h2>
         <div class="pricing-grid">
             <div class="pricing-card">
@@ -340,8 +393,8 @@
 
     <footer>
         <div style="font-size: 34px; margin-bottom: 21px;">📊 RoadLog</div>
-        <p style="opacity: 0.6; font-size: 14px;">Built by BlackRoad OS | Real-time logging and monitoring</p>
-        <p style="opacity: 0.6; font-size: 14px; margin-top: 13px;">🖤🛣️ Log. Monitor. Scale.</p>
+        <p style="opacity: 0.6; font-size: 14px;">Built by BlackRoad OS, Inc. | Real-time logging and monitoring</p>
+        <p style="opacity: 0.4; font-size: 13px; margin-top: 13px;">Log. Monitor. Scale.</p>
     </footer>
 
     <script>

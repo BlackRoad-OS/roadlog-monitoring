@@ -1,0 +1,14 @@
+{
+  "name": "roadlog-monitoring",
+  "version": "1.0.0",
+  "description": "RoadLog - Real-Time Logging & Monitoring Platform",
+  "private": true,
+  "scripts": {
+    "start": "npx serve . -p 3000",
+    "lint": "npx htmlhint '**/*.html' --config .htmlhintrc",
+    "validate": "node scripts/validate.js",
+    "test": "node scripts/validate.js"
+  },
+  "author": "BlackRoad OS, Inc.",
+  "license": "SEE LICENSE IN LICENSE"
+}
