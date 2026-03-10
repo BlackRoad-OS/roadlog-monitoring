@@ -1,0 +1,155 @@
+name: Issue Management
+
+on:
+  issues:
+    types: [opened, edited]
+  schedule:
+    # Run stale check weekly on Monday at 9am UTC - not daily to avoid rate limits
+    - cron: '0 9 * * 1'
+
+# Prevent concurrent runs to avoid rate limit issues
+concurrency:
+  group: issue-management
+  cancel-in-progress: true
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  auto-label:
+    name: Auto-label issues
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'issues'
+    steps:
+      - name: Label by content
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = context.payload.issue;
+            const title = (issue.title || '').toLowerCase();
+            const body = (issue.body || '').toLowerCase();
+            const text = title + ' ' + body;
+            const labels = [];
+
+            if (text.includes('bug') || text.includes('error') || text.includes('broken') || text.includes('fix')) {
+              labels.push('bug');
+            }
+            if (text.includes('feature') || text.includes('request') || text.includes('enhancement')) {
+              labels.push('enhancement');
+            }
+            if (text.includes('docs') || text.includes('documentation') || text.includes('readme')) {
+              labels.push('documentation');
+            }
+            if (text.includes('deploy') || text.includes('ci') || text.includes('workflow') || text.includes('action')) {
+              labels.push('ci/cd');
+            }
+            if (text.includes('security') || text.includes('vulnerability') || text.includes('cve')) {
+              labels.push('security');
+            }
+
+            if (labels.length > 0) {
+              // Ensure labels exist first
+              for (const label of labels) {
+                try {
+                  await github.rest.issues.getLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: label
+                  });
+                } catch {
+                  const colors = {
+                    'bug': 'd73a4a',
+                    'enhancement': 'a2eeef',
+                    'documentation': '0075ca',
+                    'ci/cd': 'e4e669',
+                    'security': 'b60205'
+                  };
+                  await github.rest.issues.createLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: label,
+                    color: colors[label] || 'ededed'
+                  });
+                }
+              }
+
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: labels
+              });
+            }
+
+  spam-detection:
+    name: Detect spam issues
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'issues' && github.event.action == 'opened'
+    steps:
+      - name: Check for spam patterns
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = context.payload.issue;
+            const title = issue.title || '';
+            const body = issue.body || '';
+
+            // Spam indicators
+            const isSpam =
+              // Empty or very short title with no body
+              (title.length < 5 && body.length < 10) ||
+              // Excessive links (likely spam)
+              ((body.match(/https?:\/\//g) || []).length > 5) ||
+              // Known spam patterns
+              /\b(casino|lottery|viagra|crypto.?airdrop|free.?money)\b/i.test(body);
+
+            if (isSpam) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['spam']
+              });
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: 'This issue has been flagged for review. If this is a legitimate issue, please provide more detail and a maintainer will re-open it.'
+              });
+
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed',
+                state_reason: 'not_planned'
+              });
+            }
+
+  stale:
+    name: Close stale issues
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'schedule'
+    steps:
+      - name: Stale issues
+        uses: actions/stale@v9
+        with:
+          stale-issue-message: 'This issue has been automatically marked as stale because it has not had activity in 60 days. It will be closed in 14 days if no further activity occurs.'
+          stale-pr-message: 'This PR has been automatically marked as stale because it has not had activity in 30 days. It will be closed in 7 days if no further activity occurs.'
+          days-before-issue-stale: 60
+          days-before-issue-close: 14
+          days-before-pr-stale: 30
+          days-before-pr-close: 7
+          stale-issue-label: 'stale'
+          stale-pr-label: 'stale'
+          exempt-issue-labels: 'security,pinned'
+          exempt-pr-labels: 'security,pinned'
+          # Rate limit protection: process fewer items per run
+          operations-per-run: 30

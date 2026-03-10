@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - RoadLog</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'SF Pro Display', -apple-system, sans-serif;
+            background: #000;
+            color: #FFF;
+            line-height: 1.618;
+        }
+
+        /* Navigation */
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 34px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.95);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-brand {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #FF1D6C 38.2%, #2979FF 61.8%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+        .nav-links { display: flex; gap: 24px; align-items: center; }
+        .nav-links a {
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: #FFF; }
+        .nav-links a.active { color: #FF1D6C; }
+
+        /* Layout */
+        .dashboard { display: flex; min-height: calc(100vh - 57px); }
+        .sidebar {
+            width: 240px;
+            border-right: 1px solid rgba(255,255,255,0.1);
+            padding: 24px 0;
+            flex-shrink: 0;
+        }
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .sidebar a:hover { color: #FFF; background: rgba(255,255,255,0.05); }
+        .sidebar a.active {
+            color: #FF1D6C;
+            background: rgba(255,29,108,0.1);
+            border-right: 2px solid #FF1D6C;
+        }
+        .main { flex: 1; padding: 34px; overflow-y: auto; }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 21px;
+            margin-bottom: 34px;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 13px;
+            padding: 24px;
+        }
+        .stat-card-label {
+            font-size: 13px;
+            opacity: 0.6;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .stat-card-value {
+            font-size: 34px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #FF1D6C 38.2%, #2979FF 61.8%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .stat-card-change {
+            font-size: 13px;
+            margin-top: 8px;
+        }
+        .stat-card-change.up { color: #2ECC71; }
+        .stat-card-change.down { color: #FF1D6C; }
+
+        /* Log Stream */
+        .panel {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 13px;
+            margin-bottom: 21px;
+        }
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .panel-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .panel-body { padding: 16px 24px; }
+
+        /* Log entries */
+        .log-entry {
+            padding: 10px 16px;
+            border-left: 3px solid;
+            margin-bottom: 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            font-size: 13px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .log-info { border-left-color: #2979FF; background: rgba(41,121,255,0.08); }
+        .log-warn { border-left-color: #F5A623; background: rgba(245,166,35,0.08); }
+        .log-error { border-left-color: #FF1D6C; background: rgba(255,29,108,0.08); }
+        .log-success { border-left-color: #2ECC71; background: rgba(46,204,113,0.08); }
+        .log-time { opacity: 0.5; white-space: nowrap; }
+        .log-level {
+            font-weight: 600;
+            width: 50px;
+            flex-shrink: 0;
+        }
+        .log-message { flex: 1; word-break: break-word; }
+
+        /* Search */
+        .search-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 21px;
+        }
+        .search-input {
+            flex: 1;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            color: #FFF;
+            font-size: 14px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: #2979FF;
+        }
+        .search-input::placeholder { color: rgba(255,255,255,0.3); }
+        .filter-btn {
+            padding: 12px 20px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            color: #FFF;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-btn:hover { border-color: #FF1D6C; }
+        .filter-btn.active { background: rgba(255,29,108,0.2); border-color: #FF1D6C; }
+
+        /* Chart placeholder */
+        .chart-area {
+            height: 200px;
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            padding: 16px 0;
+        }
+        .chart-bar {
+            flex: 1;
+            background: linear-gradient(to top, #FF1D6C, #2979FF);
+            border-radius: 3px 3px 0 0;
+            min-height: 8px;
+            transition: height 0.6s ease;
+        }
+
+        /* Status indicators */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-dot.green { background: #2ECC71; box-shadow: 0 0 8px rgba(46,204,113,0.5); }
+        .status-dot.yellow { background: #F5A623; box-shadow: 0 0 8px rgba(245,166,35,0.5); }
+        .status-dot.red { background: #FF1D6C; box-shadow: 0 0 8px rgba(255,29,108,0.5); }
+
+        /* Alerts table */
+        .alerts-table { width: 100%; border-collapse: collapse; }
+        .alerts-table th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.5;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .alerts-table td {
+            padding: 12px 16px;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-critical { background: rgba(255,29,108,0.2); color: #FF1D6C; }
+        .badge-warning { background: rgba(245,166,35,0.2); color: #F5A623; }
+        .badge-info { background: rgba(41,121,255,0.2); color: #2979FF; }
+        .badge-resolved { background: rgba(46,204,113,0.2); color: #2ECC71; }
+
+        /* Two column layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 21px;
+        }
+        @media (max-width: 900px) {
+            .two-col { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/" class="nav-brand">RoadLog</a>
+        <div class="nav-links">
+            <a href="/dashboard/" class="active">Dashboard</a>
+            <a href="/dashboard/#logs">Logs</a>
+            <a href="/dashboard/#alerts">Alerts</a>
+            <div id="user-area"></div>
+        </div>
+    </nav>
+
+    <div class="dashboard">
+        <aside class="sidebar">
+            <a href="/dashboard/" class="active">Overview</a>
+            <a href="/dashboard/#logs">Live Logs</a>
+            <a href="/dashboard/#alerts">Alerts</a>
+            <a href="/dashboard/#metrics">Metrics</a>
+            <a href="/dashboard/#search">Search</a>
+            <a href="/dashboard/#settings">Settings</a>
+        </aside>
+
+        <main class="main">
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-card-label">Log Events (24h)</div>
+                    <div class="stat-card-value" id="stat-events">0</div>
+                    <div class="stat-card-change up" id="stat-events-change"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-label">Error Rate</div>
+                    <div class="stat-card-value" id="stat-errors">0%</div>
+                    <div class="stat-card-change" id="stat-errors-change"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-label">Avg Latency</div>
+                    <div class="stat-card-value" id="stat-latency">0ms</div>
+                    <div class="stat-card-change up" id="stat-latency-change"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-label">Active Alerts</div>
+                    <div class="stat-card-value" id="stat-alerts">0</div>
+                    <div class="stat-card-change" id="stat-alerts-change"></div>
+                </div>
+            </div>
+
+            <!-- Ingestion chart -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Log Ingestion Rate (last 24h)</span>
+                    <span style="font-size: 13px; opacity: 0.5;"><span class="status-dot green"></span> Healthy</span>
+                </div>
+                <div class="panel-body">
+                    <div class="chart-area" id="ingestion-chart"></div>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <!-- Live Log Stream -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Live Log Stream</span>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="filter-btn active" data-filter="all">All</button>
+                            <button class="filter-btn" data-filter="error">Errors</button>
+                            <button class="filter-btn" data-filter="warn">Warnings</button>
+                        </div>
+                    </div>
+                    <div class="panel-body" id="log-stream" style="max-height: 400px; overflow-y: auto;"></div>
+                </div>
+
+                <!-- Active Alerts -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Active Alerts</span>
+                    </div>
+                    <div class="panel-body" style="padding: 0;">
+                        <table class="alerts-table">
+                            <thead>
+                                <tr>
+                                    <th>Severity</th>
+                                    <th>Alert</th>
+                                    <th>Source</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="alerts-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="panel" id="search">
+                <div class="panel-header">
+                    <span class="panel-title">Log Search</span>
+                </div>
+                <div class="panel-body">
+                    <div class="search-bar">
+                        <input type="text" class="search-input" id="search-input" placeholder="Search logs... (e.g. level:error AND service:api)">
+                        <button class="filter-btn" id="search-btn">Search</button>
+                    </div>
+                    <div id="search-results" style="font-size: 14px; opacity: 0.5;">Enter a query to search logs</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ===== Dashboard Data Simulation =====
+
+        // Animate stats on load
+        function animateValue(el, end, suffix, duration) {
+            let start = 0;
+            const step = end / (duration / 16);
+            const timer = setInterval(() => {
+                start += step;
+                if (start >= end) { start = end; clearInterval(timer); }
+                el.textContent = Math.floor(start).toLocaleString() + suffix;
+            }, 16);
+        }
+
+        // Stats
+        animateValue(document.getElementById('stat-events'), 2847392, '', 1200);
+        animateValue(document.getElementById('stat-errors'), 1.2, '%', 800);
+        animateValue(document.getElementById('stat-latency'), 47, 'ms', 600);
+        animateValue(document.getElementById('stat-alerts'), 3, '', 400);
+
+        document.getElementById('stat-events-change').textContent = '+12.4% vs yesterday';
+        document.getElementById('stat-errors-change').textContent = '-0.3% vs yesterday';
+        document.getElementById('stat-errors-change').className = 'stat-card-change up';
+        document.getElementById('stat-latency-change').textContent = '-8ms vs yesterday';
+        document.getElementById('stat-alerts-change').textContent = '2 critical, 1 warning';
+        document.getElementById('stat-alerts-change').className = 'stat-card-change down';
+
+        // Ingestion Chart
+        const chartArea = document.getElementById('ingestion-chart');
+        for (let i = 0; i < 48; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'chart-bar';
+            const h = 20 + Math.random() * 75 + (Math.sin(i / 6) * 15);
+            bar.style.height = '0%';
+            chartArea.appendChild(bar);
+            setTimeout(() => { bar.style.height = h + '%'; }, i * 30);
+        }
+
+        // Log Stream
+        const logStream = document.getElementById('log-stream');
+        const services = ['api-gateway', 'auth-service', 'payment-svc', 'user-svc', 'worker-01', 'cdn-edge'];
+        const endpoints = ['/api/users', '/api/orders', '/api/auth/token', '/api/logs', '/api/metrics', '/health'];
+        const levels = [
+            { level: 'INFO', cls: 'log-info', weight: 50 },
+            { level: 'WARN', cls: 'log-warn', weight: 15 },
+            { level: 'ERROR', cls: 'log-error', weight: 5 },
+            { level: 'OK', cls: 'log-success', weight: 30 }
+        ];
+
+        const errorMessages = [
+            'Connection refused to downstream service',
+            'Request timeout after 30000ms',
+            'Rate limit exceeded (429)',
+            'Database query failed: deadlock detected',
+            'TLS handshake timeout'
+        ];
+        const warnMessages = [
+            'High memory usage: 87%',
+            'Slow query detected: 2340ms',
+            'Connection pool nearly exhausted (48/50)',
+            'Retry attempt 2/3 for upstream call',
+            'Certificate expires in 14 days'
+        ];
+        const infoMessages = [
+            'Request completed - 200 OK',
+            'Cache hit ratio: 94.2%',
+            'New connection established',
+            'Background job completed: cleanup',
+            'Config reloaded successfully'
+        ];
+        const successMessages = [
+            'Health check passed',
+            'Deployment v2.4.1 active',
+            'Database migration complete',
+            'Backup completed: 2.4GB',
+            'SSL certificate renewed'
+        ];
+
+        function pickWeighted(arr) {
+            const total = arr.reduce((s, x) => s + x.weight, 0);
+            let r = Math.random() * total;
+            for (const item of arr) {
+                r -= item.weight;
+                if (r <= 0) return item;
+            }
+            return arr[0];
+        }
+
+        function randomFrom(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function generateLog() {
+            const l = pickWeighted(levels);
+            const svc = randomFrom(services);
+            const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+            let msg;
+            if (l.level === 'ERROR') msg = randomFrom(errorMessages);
+            else if (l.level === 'WARN') msg = randomFrom(warnMessages);
+            else if (l.level === 'OK') msg = randomFrom(successMessages);
+            else msg = `${randomFrom(endpoints)} - ${randomFrom(infoMessages)}`;
+
+            return { time: now, level: l.level, cls: l.cls, service: svc, message: msg };
+        }
+
+        function addLogEntry(log) {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${log.cls}`;
+            entry.dataset.level = log.level.toLowerCase();
+            entry.innerHTML = `
+                <span class="log-time">${log.time}</span>
+                <span class="log-level">${log.level}</span>
+                <span style="opacity:0.5;">[${log.service}]</span>
+                <span class="log-message">${log.message}</span>
+            `;
+            logStream.prepend(entry);
+            if (logStream.children.length > 50) {
+                logStream.removeChild(logStream.lastChild);
+            }
+        }
+
+        // Initial logs
+        for (let i = 0; i < 15; i++) addLogEntry(generateLog());
+
+        // Stream new logs
+        setInterval(() => addLogEntry(generateLog()), 2000);
+
+        // Filter buttons
+        document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const filter = btn.dataset.filter;
+                logStream.querySelectorAll('.log-entry').forEach(entry => {
+                    if (filter === 'all') { entry.style.display = ''; }
+                    else { entry.style.display = entry.dataset.level === filter ? '' : 'none'; }
+                });
+            });
+        });
+
+        // Alerts
+        const alertsBody = document.getElementById('alerts-body');
+        const alertData = [
+            { severity: 'critical', badge: 'badge-critical', alert: 'Error rate spike: 4.2%', source: 'api-gateway', status: 'Firing' },
+            { severity: 'critical', badge: 'badge-critical', alert: 'Database replication lag > 10s', source: 'db-primary', status: 'Firing' },
+            { severity: 'warning', badge: 'badge-warning', alert: 'Disk usage > 85%', source: 'worker-01', status: 'Firing' },
+            { severity: 'info', badge: 'badge-info', alert: 'New deployment detected', source: 'cd-pipeline', status: 'Acknowledged' },
+            { severity: 'resolved', badge: 'badge-resolved', alert: 'Memory leak in auth-service', source: 'auth-service', status: 'Resolved' }
+        ];
+        alertData.forEach(a => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><span class="badge ${a.badge}">${a.severity}</span></td>
+                <td>${a.alert}</td>
+                <td style="opacity:0.6;">${a.source}</td>
+                <td>${a.status}</td>
+            `;
+            alertsBody.appendChild(tr);
+        });
+
+        // Search
+        document.getElementById('search-btn').addEventListener('click', () => {
+            const q = document.getElementById('search-input').value.trim();
+            const results = document.getElementById('search-results');
+            if (!q) { results.textContent = 'Enter a query to search logs'; return; }
+            results.innerHTML = '<div style="opacity: 0.7;">Searching...</div>';
+            setTimeout(() => {
+                const count = Math.floor(Math.random() * 500) + 50;
+                results.innerHTML = `
+                    <div style="margin-bottom: 12px; opacity: 0.6;">${count} results found in 23ms</div>
+                    ${Array.from({length: Math.min(count, 5)}, () => {
+                        const log = generateLog();
+                        return `<div class="log-entry ${log.cls}" style="margin-bottom: 4px;">
+                            <span class="log-time">${log.time}</span>
+                            <span class="log-level">${log.level}</span>
+                            <span style="opacity:0.5;">[${log.service}]</span>
+                            <span class="log-message">${log.message}</span>
+                        </div>`;
+                    }).join('')}
+                `;
+            }, 300);
+        });
+
+        document.getElementById('search-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('search-btn').click();
+        });
+    </script>
+</body>
+</html>
